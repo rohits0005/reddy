@@ -231,3 +231,52 @@ function renderUnlockedVault(content) {
     })
     .catch(err => console.error(err));
 }
+
+// Corner Admin Portal Handler
+const btnHeaderAdmin = document.getElementById('btnHeaderAdmin');
+const cornerAdminModal = document.getElementById('cornerAdminModal');
+const cornerAdminCloseBtn = document.getElementById('cornerAdminCloseBtn');
+const cornerAdminForm = document.getElementById('cornerAdminForm');
+const cornerAdminPasswordInput = document.getElementById('cornerAdminPasswordInput');
+
+if (btnHeaderAdmin && cornerAdminModal) {
+  btnHeaderAdmin.addEventListener('click', () => {
+    // If already logged in, redirect directly to admin
+    const savedPwd = localStorage.getItem('vip_admin_pwd');
+    if (savedPwd) {
+      window.location.href = '/admin';
+      return;
+    }
+    cornerAdminModal.classList.add('active');
+    cornerAdminPasswordInput.focus();
+  });
+
+  cornerAdminCloseBtn.addEventListener('click', () => {
+    cornerAdminModal.classList.remove('active');
+  });
+
+  cornerAdminForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const pwd = cornerAdminPasswordInput.value.trim();
+    if (!pwd) return;
+
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pwd })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        localStorage.setItem('vip_admin_pwd', pwd);
+        // Direct redirect into the admin dashboard!
+        window.location.href = '/admin';
+      } else {
+        alert('Galat Password! Kripya sahi password dalein.');
+      }
+    } catch (err) {
+      alert('Connection error');
+    }
+  });
+}

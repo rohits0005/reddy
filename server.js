@@ -14,7 +14,7 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 3000;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Graphic@3526';
 const DEFAULT_PRICE = process.env.DEFAULT_PRICE || '300';
 
 // Ensure uploads folder exists
@@ -371,6 +371,6 @@ server.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`👤 Visitor Link: http://localhost:${PORT}`);
   console.log(`🔐 Admin Panel: http://localhost:${PORT}/admin`);
-  console.log(`🔑 Admin Password: ${ADMIN_PASSWORD}`);
+  console.log(`🔑 Admin Auth: Protected`);
   console.log(`=======================================================`);
 });

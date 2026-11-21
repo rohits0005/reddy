@@ -108,7 +108,7 @@ async function verifyLogin(password) {
       adminContent.style.display = 'block';
       initSocket();
     } else {
-      alert('Galat Password! Default password: admin123');
+      alert('Galat Password! Kripya sahi password dalein.');
     }
   } catch (err) {
     alert('Server se connect nahi ho paya.');

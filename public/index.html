@@ -17,8 +17,12 @@
       <span>VIP VAULT</span>
       <span class="brand-badge">EXCLUSIVE</span>
     </div>
-    <div>
+    <div style="display: flex; align-items: center; gap: 12px;">
       <span style="font-size: 0.8rem; color: #10b981; font-weight: 600;">● Online</span>
+      <button id="btnHeaderAdmin" class="corner-admin-btn" title="Admin Portal" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1; border-radius: 8px; padding: 5px 10px; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; gap: 5px; transition: all 0.2s;">
+        <span>🔐</span>
+        <span style="font-size: 0.75rem; font-weight: 600;">Admin</span>
+      </button>
     </div>
   </header>
 
@@ -226,6 +230,34 @@
         </button>
       </div>
 
+    </div>
+  </div>
+
+  <!-- CORNER ADMIN LOGIN MODAL -->
+  <div id="cornerAdminModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 370px; text-align: center;">
+      <button id="cornerAdminCloseBtn" class="modal-close">&times;</button>
+      <span class="badge-18" style="background: #3b82f6; margin-bottom: 8px;">ADMIN PORTAL</span>
+      <h3 style="font-size: 1.3rem; margin-top: 8px; margin-bottom: 6px;">Admin Access</h3>
+      <p style="color: var(--text-muted); font-size: 0.82rem; margin-bottom: 18px;">
+        Dashboard me enter karne ke liye password dalein:
+      </p>
+
+      <form id="cornerAdminForm">
+        <div class="form-group">
+          <input 
+            type="password" 
+            id="cornerAdminPasswordInput" 
+            class="form-input" 
+            placeholder="Enter Admin Password" 
+            required
+            autocomplete="current-password"
+          >
+        </div>
+        <button type="submit" class="btn-primary-cta" style="padding: 12px; font-size: 0.95rem; background: linear-gradient(135deg, #2563eb, #1d4ed8);">
+          🔓 Login & Open Dashboard
+        </button>
+      </form>
     </div>
   </div>
 

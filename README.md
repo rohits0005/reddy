@@ -48,14 +48,14 @@ node server.js
 
 ### 2. Website Links:
 - **User Link (Public):** [http://localhost:3000](http://localhost:3000)
-- **Admin Control Panel:** [http://localhost:3000/admin](http://localhost:3000/admin)
-- **Default Admin Password:** `admin123` (ise `.env` file me change kar sakte hain)
+- **Admin Control Panel:** [http://localhost:3000/admin](http://localhost:3000/admin) (Ya main page ke top-right corner me **🔐 Admin** button par click karke login karein)
+- **Admin Password:** `.env` me set kiya gaya password (`Graphic@3526`)
 
 ---
 
 ## ⚙️ Configuration (`.env`):
 - `PORT`: 3000 (ya hosting port)
-- `ADMIN_PASSWORD`: admin123
+- `ADMIN_PASSWORD`: Graphic@3526
 - `DEFAULT_PRICE`: 300
 
 ---
