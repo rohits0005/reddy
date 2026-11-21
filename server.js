@@ -147,8 +147,23 @@ app.post('/api/admin/send-qr', upload.single('qrImage'), (req, res) => {
   }
 
   const { sessionId } = req.body;
-  if (!sessionId || !sessions.has(sessionId)) {
-    return res.status(404).json({ error: 'Session not found' });
+  if (!sessionId) {
+    return res.status(400).json({ error: 'Session ID is required' });
+  }
+
+  let session = sessions.get(sessionId);
+  if (!session) {
+    session = {
+      id: sessionId,
+      ip: req.ip || 'Unknown',
+      createdAt: new Date(),
+      status: 'qr_sent',
+      price: DEFAULT_PRICE,
+      qrUrl: null,
+      screenshotUrl: null,
+      utr: null,
+      updatedAt: new Date()
+    };
   }
 
   let qrPath = null;
@@ -160,23 +175,74 @@ app.post('/api/admin/send-qr', upload.single('qrImage'), (req, res) => {
     return res.status(400).json({ error: 'No QR image uploaded or selected' });
   }
 
-  const session = sessions.get(sessionId);
   session.status = 'qr_sent';
   session.qrUrl = qrPath;
   session.updatedAt = new Date();
   sessions.set(sessionId, session);
 
-  // Notify the user in real-time
+  // Notify the user in real-time via room
   io.to(`session_${sessionId}`).emit('qr_received', {
     sessionId,
     qrUrl: qrPath,
     price: session.price
   });
 
+  // Direct dispatch to all connected sockets matching this sessionId
+  for (const [id, s] of io.sockets.sockets) {
+    if (s.sessionId === sessionId) {
+      s.emit('qr_received', {
+        sessionId,
+        qrUrl: qrPath,
+        price: session.price
+      });
+    }
+  }
+
   // Notify admins
   io.to('admin_room').emit('session_updated', session);
 
-  res.json({ success: true, message: 'QR sent to user successfully!', session });
+  res.json({ success: true, message: 'QR sent to user successfully!', session, qrUrl: qrPath });
+});
+
+// API: Check session status (HTTP Polling fallback)
+app.get('/api/session/:sessionId/status', (req, res) => {
+  const { sessionId } = req.params;
+  const session = sessions.get(sessionId);
+  if (!session) {
+    return res.status(404).json({ error: 'Session not found' });
+  }
+  res.json({ success: true, session });
+});
+
+// API: User Request QR (HTTP fallback)
+app.post('/api/session/request-qr', (req, res) => {
+  const { sessionId } = req.body;
+  if (!sessionId) return res.status(400).json({ error: 'Session ID required' });
+  
+  let session = sessions.get(sessionId);
+  if (!session) {
+    session = {
+      id: sessionId,
+      ip: req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'Unknown',
+      createdAt: new Date(),
+      status: 'qr_requested',
+      price: DEFAULT_PRICE,
+      qrUrl: null,
+      screenshotUrl: null,
+      utr: null,
+      updatedAt: new Date()
+    };
+  }
+  session.status = 'qr_requested';
+  session.updatedAt = new Date();
+  sessions.set(sessionId, session);
+
+  io.to('admin_room').emit('new_qr_request', {
+    session,
+    message: `🔔 User #${sessionId} clicked "View QR"! Waiting for you to send QR code.`
+  });
+
+  res.json({ success: true, session });
 });
 
 // API: User Upload Payment Screenshot & UTR
@@ -301,6 +367,13 @@ io.on('connection', (socket) => {
       const session = sessions.get(sessionId);
       if (session) {
         socket.emit('session_state', session);
+        if (session.status === 'qr_sent' && session.qrUrl) {
+          socket.emit('qr_received', {
+            sessionId,
+            qrUrl: session.qrUrl,
+            price: session.price
+          });
+        }
       }
     }
   });

@@ -37,8 +37,20 @@ if (displaySessionIdWait) {
 // Connect to Socket.IO
 const socket = io();
 
-// Join visitor session room
-socket.emit('join_session', { sessionId });
+let qrPollingInterval = null;
+
+// Re-join session on every connect / reconnect
+socket.on('connect', () => {
+  console.log('Socket connected successfully:', socket.id);
+  socket.emit('join_session', { sessionId });
+});
+
+// Socket Event: Real-time session state update
+socket.on('session_state', (session) => {
+  if (session) {
+    handleSessionState(session);
+  }
+});
 
 // Register session on backend
 fetch('/api/session/init', {
@@ -54,18 +66,57 @@ fetch('/api/session/init', {
 // State handler
 function handleSessionState(session) {
   if (session.status === 'approved') {
+    stopPolling();
+    modal.classList.remove('active');
     renderUnlockedVault();
   } else if (session.status === 'payment_submitted') {
     modal.classList.add('active');
     showStep('pending');
     if (session.utr) displaySubmittedUtr.textContent = session.utr;
   } else if (session.status === 'qr_sent' && session.qrUrl) {
+    stopPolling();
     modal.classList.add('active');
-    qrImageElement.src = session.qrUrl;
+    const cacheBuster = (session.qrUrl.includes('?') ? '&' : '?') + 't=' + Date.now();
+    qrImageElement.src = session.qrUrl + cacheBuster;
     showStep('qr_form');
   } else if (session.status === 'qr_requested') {
     modal.classList.add('active');
     showStep('waiting_qr');
+    startPollingQrStatus();
+  }
+}
+
+// Polling Fallback (Guaranteed to fetch QR even if WebSocket dropped)
+function startPollingQrStatus() {
+  if (qrPollingInterval) clearInterval(qrPollingInterval);
+  qrPollingInterval = setInterval(async () => {
+    try {
+      const res = await fetch(`/api/session/${sessionId}/status`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.success && data.session) {
+        if (data.session.status === 'qr_sent' && data.session.qrUrl) {
+          stopPolling();
+          modal.classList.add('active');
+          const cacheBuster = (data.session.qrUrl.includes('?') ? '&' : '?') + 't=' + Date.now();
+          qrImageElement.src = data.session.qrUrl + cacheBuster;
+          showStep('qr_form');
+        } else if (data.session.status === 'approved') {
+          stopPolling();
+          modal.classList.remove('active');
+          renderUnlockedVault();
+        }
+      }
+    } catch (err) {
+      console.error('Polling error:', err);
+    }
+  }, 1500);
+}
+
+function stopPolling() {
+  if (qrPollingInterval) {
+    clearInterval(qrPollingInterval);
+    qrPollingInterval = null;
   }
 }
 
@@ -99,19 +150,31 @@ btnSeeExclusive.addEventListener('click', () => {
 // Close Modal
 modalCloseBtn.addEventListener('click', () => {
   modal.classList.remove('active');
+  stopPolling();
 });
 
 // Event: Click "View QR Code"
 btnViewQr.addEventListener('click', () => {
   showStep('waiting_qr');
-  // Notify backend and admin
+  // 1. Notify backend via socket
   socket.emit('request_qr', { sessionId });
+  // 2. HTTP fallback notification
+  fetch('/api/session/request-qr', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sessionId })
+  }).catch(err => console.error(err));
+  // 3. Start high-frequency polling fallback
+  startPollingQrStatus();
 });
 
 // Socket Event: Admin sent QR code
 socket.on('qr_received', (data) => {
   if (data.qrUrl) {
-    qrImageElement.src = data.qrUrl;
+    stopPolling();
+    modal.classList.add('active');
+    const cacheBuster = (data.qrUrl.includes('?') ? '&' : '?') + 't=' + Date.now();
+    qrImageElement.src = data.qrUrl + cacheBuster;
     showStep('qr_form');
   }
 });
@@ -166,6 +229,7 @@ paymentProofForm.addEventListener('submit', async (e) => {
     if (data.success) {
       displaySubmittedUtr.textContent = utr;
       showStep('pending');
+      startPendingApprovalPolling();
     } else {
       alert(data.error || 'Upload failed. Please try again.');
       submitBtn.disabled = false;
@@ -179,14 +243,38 @@ paymentProofForm.addEventListener('submit', async (e) => {
   }
 });
 
+function startPendingApprovalPolling() {
+  if (qrPollingInterval) clearInterval(qrPollingInterval);
+  qrPollingInterval = setInterval(async () => {
+    try {
+      const res = await fetch(`/api/session/${sessionId}/status`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.success && data.session) {
+        if (data.session.status === 'approved') {
+          stopPolling();
+          modal.classList.remove('active');
+          renderUnlockedVault();
+        } else if (data.session.status === 'rejected') {
+          stopPolling();
+          rejectReasonText.textContent = data.session.rejectReason || 'Payment could not be verified.';
+          showStep('rejected');
+        }
+      }
+    } catch (err) {}
+  }, 2000);
+}
+
 // Socket Event: Admin Approved Payment
 socket.on('access_granted', (data) => {
+  stopPolling();
   modal.classList.remove('active');
   renderUnlockedVault(data.exclusiveContent);
 });
 
 // Socket Event: Admin Rejected Payment
 socket.on('access_rejected', (data) => {
+  stopPolling();
   rejectReasonText.textContent = data.reason || 'Payment could not be verified.';
   showStep('rejected');
 });

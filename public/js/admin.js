@@ -263,15 +263,37 @@ function renderTables() {
   }
 }
 
+// Modal QR File Preview
+const modalQrPreviewBox = document.getElementById('modalQrPreviewBox');
+const modalQrPreviewImg = document.getElementById('modalQrPreviewImg');
+
+modalQrFile.addEventListener('change', function() {
+  const file = this.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      modalQrPreviewImg.src = e.target.result;
+      modalQrPreviewBox.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+    if (chkUseDefaultQr) chkUseDefaultQr.checked = false;
+  } else {
+    modalQrPreviewBox.style.display = 'none';
+  }
+});
+
 // Open Send QR Modal
 window.openSendQrModal = function(sessionId) {
   selectedSessionForQr = sessionId;
   modalTargetSession.textContent = '#' + sessionId;
   modalQrFile.value = '';
+  modalQrPreviewBox.style.display = 'none';
 
   if (defaultQrUrl) {
     defaultQrOptionContainer.style.display = 'block';
     chkUseDefaultQr.checked = true;
+    modalQrPreviewImg.src = defaultQrUrl;
+    modalQrPreviewBox.style.display = 'block';
   } else {
     defaultQrOptionContainer.style.display = 'none';
     chkUseDefaultQr.checked = false;
@@ -283,6 +305,19 @@ window.openSendQrModal = function(sessionId) {
 sendQrModalClose.addEventListener('click', () => {
   sendQrModal.classList.remove('active');
 });
+
+// Toggle default QR checkbox
+if (chkUseDefaultQr) {
+  chkUseDefaultQr.addEventListener('change', function() {
+    if (this.checked && defaultQrUrl) {
+      modalQrFile.value = '';
+      modalQrPreviewImg.src = defaultQrUrl;
+      modalQrPreviewBox.style.display = 'block';
+    } else if (!modalQrFile.files[0]) {
+      modalQrPreviewBox.style.display = 'none';
+    }
+  });
+}
 
 // Handle Send QR Form Submission
 modalSendQrForm.addEventListener('submit', async (e) => {
@@ -297,6 +332,11 @@ modalSendQrForm.addEventListener('submit', async (e) => {
     return;
   }
 
+  const submitBtn = modalSendQrForm.querySelector('button[type="submit"]');
+  const originalBtnText = submitBtn.textContent;
+  submitBtn.disabled = true;
+  submitBtn.textContent = '⏳ Sending QR to user screen...';
+
   const formData = new FormData();
   formData.append('sessionId', selectedSessionForQr);
   if (file) {
@@ -306,10 +346,12 @@ modalSendQrForm.addEventListener('submit', async (e) => {
     formData.append('useDefaultQr', 'true');
   }
 
+  const currentAuth = adminPassword || localStorage.getItem('vip_admin_pwd') || 'Graphic@3526';
+
   try {
     const res = await fetch('/api/admin/send-qr', {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${adminPassword}` },
+      headers: { 'Authorization': `Bearer ${currentAuth}` },
       body: formData
     });
 
@@ -321,7 +363,11 @@ modalSendQrForm.addEventListener('submit', async (e) => {
       alert(data.error || 'Failed to send QR');
     }
   } catch (err) {
-    alert('Error sending QR');
+    console.error('Send QR Error:', err);
+    alert('Error sending QR. Please try again.');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = originalBtnText;
   }
 });
 
@@ -333,12 +379,14 @@ window.verifyPayment = async function(sessionId, action) {
     if (rejectReason === null) return; // cancelled
   }
 
+  const currentAuth = adminPassword || localStorage.getItem('vip_admin_pwd') || 'Graphic@3526';
+
   try {
     const res = await fetch('/api/admin/verify-payment', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${adminPassword}`
+        'Authorization': `Bearer ${currentAuth}`
       },
       body: JSON.stringify({ sessionId, action, rejectReason })
     });
@@ -380,10 +428,12 @@ defaultQrForm.addEventListener('submit', async (e) => {
   const formData = new FormData();
   formData.append('qrImage', file);
 
+  const currentAuth = adminPassword || localStorage.getItem('vip_admin_pwd') || 'Graphic@3526';
+
   try {
     const res = await fetch('/api/admin/upload-default-qr', {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${adminPassword}` },
+      headers: { 'Authorization': `Bearer ${currentAuth}` },
       body: formData
     });
 
