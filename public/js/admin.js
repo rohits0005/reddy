@@ -79,47 +79,17 @@ btnEnableAudio.addEventListener('click', () => {
   alert('🔔 Audio Alert working correctly!');
 });
 
-// Check existing login
-if (adminPassword) {
-  verifyLogin(adminPassword);
-}
-
-// Handle Login Form
-loginForm.addEventListener('submit', (e) => {
-  e.preventDefault();
-  const pwd = adminPasswordInput.value.trim();
-  verifyLogin(pwd);
-});
-
-// Verify login API
-async function verifyLogin(password) {
-  try {
-    const res = await fetch('/api/admin/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password })
-    });
-
-    const data = await res.json();
-    if (data.success) {
-      adminPassword = password;
-      localStorage.setItem('vip_admin_pwd', password);
-      loginModal.classList.remove('active');
-      adminContent.style.display = 'block';
-      initSocket();
-    } else {
-      alert('Galat Password! Kripya sahi password dalein.');
-    }
-  } catch (err) {
-    alert('Server se connect nahi ho paya.');
-  }
-}
-
 // Logout
-btnLogout.addEventListener('click', () => {
+btnLogout.addEventListener('click', async () => {
   localStorage.removeItem('vip_admin_pwd');
-  window.location.reload();
+  try {
+    await fetch('/api/admin/logout', { method: 'POST' });
+  } catch (err) {}
+  window.location.href = '/admin';
 });
+
+// Start real-time connection immediately
+initSocket();
 
 // Socket Initialization
 function initSocket() {

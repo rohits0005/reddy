@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Security Gateway | Authorized Personnel Only</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: #08090e;
+      padding: 16px;
+    }
+    .login-container {
+      max-width: 400px;
+      width: 100%;
+      background: rgba(18, 20, 30, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 18px;
+      padding: 36px 28px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85);
+      position: relative;
+      overflow: hidden;
+    }
+    .login-container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+    }
+    .lock-shield {
+      width: 60px;
+      height: 60px;
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      margin: 0 auto 16px;
+    }
+    .error-msg {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #f87171;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      margin-bottom: 16px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-container">
+    <div class="lock-shield">🔒</div>
+    <span class="badge-18" style="background: #2563eb; margin-bottom: 10px;">SECURE GATEWAY</span>
+    <h2 style="font-size: 1.5rem; margin-top: 10px; margin-bottom: 6px;">Admin Authentication</h2>
+    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 24px;">
+      This portal is restricted to authorized managers only. Please enter your security key to continue.
+    </p>
+
+    <div id="errorAlert" class="error-msg">
+      Incorrect security key. Access denied.
+    </div>
+
+    <form id="gateLoginForm">
+      <div class="form-group" style="margin-bottom: 20px;">
+        <input 
+          type="password" 
+          id="gatePasswordInput" 
+          class="form-input" 
+          placeholder="Enter Admin Security Password" 
+          required 
+          autocomplete="current-password"
+          style="padding: 14px 16px; font-size: 1rem; text-align: center; letter-spacing: 1px;"
+        >
+      </div>
+
+      <button type="submit" id="btnGateSubmit" class="btn-primary-cta" style="padding: 14px; font-size: 1.05rem; background: linear-gradient(135deg, #2563eb, #1d4ed8);">
+        🔓 Authenticate & Open
+      </button>
+    </form>
+
+    <div style="margin-top: 24px;">
+      <a href="/" style="color: #64748b; font-size: 0.8rem; text-decoration: none;">&larr; Back to Public Vault</a>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('gateLoginForm');
+    const input = document.getElementById('gatePasswordInput');
+    const errorAlert = document.getElementById('errorAlert');
+    const submitBtn = document.getElementById('btnGateSubmit');
+
+    input.focus();
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const password = input.value.trim();
+      if (!password) return;
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Verifying credentials...';
+      errorAlert.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          localStorage.setItem('vip_admin_pwd', password);
+          // Reload /admin - server cookie will now serve the actual dashboard!
+          window.location.href = '/admin';
+        } else {
+          errorAlert.style.display = 'block';
+          input.value = '';
+          input.focus();
+          submitBtn.disabled = false;
+          submitBtn.textContent = '🔓 Authenticate & Open';
+        }
+      } catch (err) {
+        errorAlert.textContent = 'Connection error. Please try again.';
+        errorAlert.style.display = 'block';
+        submitBtn.disabled = false;
+        submitBtn.textContent = '🔓 Authenticate & Open';
+      }
+    });
+  </script>
+
+</body>
+</html>

@@ -221,35 +221,8 @@
 </head>
 <body>
 
-  <!-- ADMIN LOGIN MODAL -->
-  <div id="loginModal" class="modal-overlay active">
-    <div class="modal-card" style="max-width: 380px; text-align: center;">
-      <span class="badge-18" style="margin-bottom: 10px;">ADMIN LOGIN</span>
-      <h2 style="font-size: 1.4rem; margin-top: 8px; margin-bottom: 6px;">VIP Admin Panel</h2>
-      <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px;">
-        Enter your admin password to view payments & send QR codes.
-      </p>
-
-      <form id="loginForm">
-        <div class="form-group">
-          <input 
-            type="password" 
-            id="adminPasswordInput" 
-            class="form-input" 
-            placeholder="Enter Admin Password" 
-            required
-            autocomplete="current-password"
-          >
-        </div>
-        <button type="submit" class="btn-primary-cta" style="padding: 12px; font-size: 1rem;">
-          🔑 Access Dashboard
-        </button>
-      </form>
-    </div>
-  </div>
-
-  <!-- ADMIN DASHBOARD CONTAINER -->
-  <div id="adminContent" class="admin-container" style="display: none;">
+  <!-- ADMIN DASHBOARD CONTAINER (Protected by Server-Side Gateway) -->
+  <div id="adminContent" class="admin-container">
     <div class="admin-header">
       <div>
         <div style="display: flex; align-items: center; gap: 10px;">

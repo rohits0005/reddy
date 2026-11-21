@@ -53,9 +53,34 @@ const upload = multer({
   }
 });
 
+// Helper: Parse cookie from request
+function getCookie(req, name) {
+  const cookieHeader = req.headers.cookie;
+  if (!cookieHeader) return null;
+  const match = cookieHeader.match(new RegExp('(^|;\\s*)' + name + '=([^;]*)'));
+  return match ? decodeURIComponent(match[2]) : null;
+}
+
+// Helper: Verify Admin Authentication (Cookie or Bearer Token)
+function verifyAdminAuth(req) {
+  const cookieToken = getCookie(req, 'admin_token');
+  const authHeader = req.headers['authorization'];
+  const headerToken = authHeader ? authHeader.replace(/^Bearer\s+/, '') : null;
+  return cookieToken === ADMIN_PASSWORD || headerToken === ADMIN_PASSWORD;
+}
+
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Protect direct static access to admin.html
+app.use((req, res, next) => {
+  if (req.path === '/admin.html') {
+    return res.redirect('/admin');
+  }
+  next();
+});
+
 app.use(express.static(publicDir));
 app.use('/uploads', express.static(uploadsDir));
 
@@ -87,13 +112,20 @@ let exclusiveContent = {
   ]
 };
 
-// API: Check Admin Auth
+// API: Check Admin Auth & Set Session Cookie
 app.post('/api/admin/login', (req, res) => {
   const { password } = req.body;
   if (password === ADMIN_PASSWORD) {
+    res.setHeader('Set-Cookie', `admin_token=${encodeURIComponent(ADMIN_PASSWORD)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800`);
     return res.json({ success: true, message: 'Authenticated successfully' });
   }
   return res.status(401).json({ success: false, message: 'Invalid password' });
+});
+
+// API: Admin Logout (Clear Session Cookie)
+app.post('/api/admin/logout', (req, res) => {
+  res.setHeader('Set-Cookie', 'admin_token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
+  res.json({ success: true, message: 'Logged out successfully' });
 });
 
 // API: Get initial session or register
@@ -126,8 +158,7 @@ app.post('/api/session/init', (req, res) => {
 
 // API: Admin Upload Default QR
 app.post('/api/admin/upload-default-qr', upload.single('qrImage'), (req, res) => {
-  const authHeader = req.headers['authorization'];
-  if (authHeader !== `Bearer ${ADMIN_PASSWORD}`) {
+  if (!verifyAdminAuth(req)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
@@ -141,8 +172,7 @@ app.post('/api/admin/upload-default-qr', upload.single('qrImage'), (req, res) =>
 
 // API: Admin Upload Specific QR for a Session
 app.post('/api/admin/send-qr', upload.single('qrImage'), (req, res) => {
-  const authHeader = req.headers['authorization'];
-  if (authHeader !== `Bearer ${ADMIN_PASSWORD}`) {
+  if (!verifyAdminAuth(req)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
@@ -288,8 +318,7 @@ app.post('/api/user/submit-payment', upload.single('screenshot'), (req, res) => 
 
 // API: Admin Approve or Reject Payment
 app.post('/api/admin/verify-payment', (req, res) => {
-  const authHeader = req.headers['authorization'];
-  if (authHeader !== `Bearer ${ADMIN_PASSWORD}`) {
+  if (!verifyAdminAuth(req)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
@@ -344,8 +373,7 @@ app.get('/api/exclusive-content/:sessionId', (req, res) => {
 
 // API: Update Exclusive Content (Admin only)
 app.post('/api/admin/update-content', (req, res) => {
-  const authHeader = req.headers['authorization'];
-  if (authHeader !== `Bearer ${ADMIN_PASSWORD}`) {
+  if (!verifyAdminAuth(req)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
@@ -434,9 +462,12 @@ io.on('connection', (socket) => {
   });
 });
 
-// Fallback routing
+// Protected Admin Portal Route
 app.get('/admin', (req, res) => {
-  res.sendFile(path.join(publicDir, 'admin.html'));
+  if (verifyAdminAuth(req)) {
+    return res.sendFile(path.join(publicDir, 'admin.html'));
+  }
+  return res.sendFile(path.join(publicDir, 'admin-login.html'));
 });
 
 server.listen(PORT, () => {
