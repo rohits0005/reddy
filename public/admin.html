@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Control Panel | VIP Payment Verification</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    /* Admin Specific Styling */
+    .admin-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 20px 80px;
+    }
+
+    .admin-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    .status-pill.online {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 18px 20px;
+    }
+
+    .stat-val {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #fff;
+      margin-top: 4px;
+    }
+
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .table-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      overflow-x: auto;
+      margin-bottom: 32px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+
+    th {
+      background: rgba(255, 255, 255, 0.04);
+      padding: 14px 16px;
+      color: var(--text-muted);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border-color);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      vertical-align: middle;
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .badge-waiting {
+      background: #f59e0b;
+      color: #000;
+    }
+
+    .badge-paid {
+      background: #3b82f6;
+      color: #fff;
+    }
+
+    .badge-approved {
+      background: #10b981;
+      color: #fff;
+    }
+
+    .badge-rejected {
+      background: #ef4444;
+      color: #fff;
+    }
+
+    .btn-action {
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: none;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+    }
+
+    .btn-approve {
+      background: #10b981;
+      color: #fff;
+    }
+    .btn-approve:hover { background: #059669; }
+
+    .btn-reject {
+      background: #ef4444;
+      color: #fff;
+    }
+    .btn-reject:hover { background: #dc2626; }
+
+    .btn-send-qr {
+      background: #8b5cf6;
+      color: #fff;
+    }
+    .btn-send-qr:hover { background: #7c3aed; }
+
+    .img-thumb {
+      width: 55px;
+      height: 55px;
+      border-radius: 6px;
+      object-fit: cover;
+      cursor: pointer;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: transform 0.2s;
+    }
+    .img-thumb:hover { transform: scale(1.1); }
+
+    /* Zoom Modal */
+    .zoom-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.9);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      padding: 20px;
+    }
+    .zoom-modal.active { display: flex; }
+    .zoom-modal img {
+      max-width: 90vw;
+      max-height: 85vh;
+      border-radius: 8px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+    }
+
+    /* Sound alert banner */
+    .audio-notice {
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      color: #93c5fd;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Default QR Upload Box */
+    .settings-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ADMIN LOGIN MODAL -->
+  <div id="loginModal" class="modal-overlay active">
+    <div class="modal-card" style="max-width: 380px; text-align: center;">
+      <span class="badge-18" style="margin-bottom: 10px;">ADMIN LOGIN</span>
+      <h2 style="font-size: 1.4rem; margin-top: 8px; margin-bottom: 6px;">VIP Admin Panel</h2>
+      <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px;">
+        Enter your admin password to view payments & send QR codes.
+      </p>
+
+      <form id="loginForm">
+        <div class="form-group">
+          <input 
+            type="password" 
+            id="adminPasswordInput" 
+            class="form-input" 
+            placeholder="Admin Password (default: admin123)" 
+            required
+            autocomplete="current-password"
+          >
+        </div>
+        <button type="submit" class="btn-primary-cta" style="padding: 12px; font-size: 1rem;">
+          🔑 Access Dashboard
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ADMIN DASHBOARD CONTAINER -->
+  <div id="adminContent" class="admin-container" style="display: none;">
+    <div class="admin-header">
+      <div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <h1 style="font-size: 1.6rem; font-weight: 800;">⚡ VIP Admin Dashboard</h1>
+          <span class="status-pill online">● Live Sync</span>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">
+          Monitor users clicking "View QR", send QR codes instantly, and verify payment screenshots.
+        </p>
+      </div>
+
+      <div style="display: flex; gap: 10px;">
+        <button id="btnEnableAudio" class="btn-action" style="background: rgba(255,255,255,0.1); color: #fff; padding: 8px 14px;">
+          🔔 Test Alert Sound
+        </button>
+        <button id="btnLogout" class="btn-action btn-reject" style="padding: 8px 14px;">
+          Logout
+        </button>
+      </div>
+    </div>
+
+    <!-- Audio Notice -->
+    <div class="audio-notice">
+      <span>🔊 <strong>Audio Alerts Active:</strong> Jab koi banda "View QR" dabayega ya payment screenshot upload karega, alert sound bajegi!</span>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <span style="color: var(--text-muted); font-size: 0.82rem; font-weight: 600;">ACTIVE QR REQUESTS</span>
+        <div class="stat-val" id="statQrRequests" style="color: #fbbf24;">0</div>
+      </div>
+      <div class="stat-card">
+        <span style="color: var(--text-muted); font-size: 0.82rem; font-weight: 600;">PENDING SCREENSHOTS</span>
+        <div class="stat-val" id="statPendingPayments" style="color: #60a5fa;">0</div>
+      </div>
+      <div class="stat-card">
+        <span style="color: var(--text-muted); font-size: 0.82rem; font-weight: 600;">APPROVED PAYMENTS</span>
+        <div class="stat-val" id="statApproved" style="color: #34d399;">0</div>
+      </div>
+    </div>
+
+    <!-- 1. LIVE QR REQUESTS (Users who clicked 'View QR') -->
+    <div class="section-title">
+      <span>🔔 Live QR Requests (Waiting for QR code)</span>
+    </div>
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>Session ID</th>
+            <th>Requested At</th>
+            <th>Status</th>
+            <th>Action (Send QR Image)</th>
+          </tr>
+        </thead>
+        <tbody id="qrRequestsTableBody">
+          <tr>
+            <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 24px;">
+              No users waiting for QR right now. When someone clicks "View QR", they appear here instantly!
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 2. PAYMENT SCREENSHOTS VERIFICATION TABLE -->
+    <div class="section-title">
+      <span>💰 Payment Verifications (Screenshots & UTR)</span>
+    </div>
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>Session ID</th>
+            <th>UTR Number</th>
+            <th>Screenshot</th>
+            <th>Submitted Time</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="paymentsTableBody">
+          <tr>
+            <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">
+              No payment screenshots received yet.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 3. DEFAULT QR CODE SETTING -->
+    <div class="settings-panel">
+      <h3 style="font-size: 1.15rem; margin-bottom: 8px;">⚙️ Default QR Code (Optional Quick-Send)</h3>
+      <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 14px;">
+        Aap yaha apna default UPI QR code upload kar sakte hain. Isse aap 1-click me kisi bhi bande ko yahi QR send kar payenge bina baar-baar file select kiye!
+      </p>
+
+      <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+        <div style="width: 120px; height: 120px; background: #fff; padding: 6px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+          <img id="adminDefaultQrPreview" src="" alt="Default QR" style="max-width: 100%; max-height: 100%; display: none;">
+          <span id="noQrText" style="color: #64748b; font-size: 0.75rem; text-align: center;">No QR Set</span>
+        </div>
+
+        <div>
+          <form id="defaultQrForm" style="display: flex; gap: 10px; align-items: center;">
+            <input type="file" id="defaultQrFileInput" accept="image/*" class="form-input" style="width: auto;">
+            <button type="submit" class="btn-action btn-send-qr" style="padding: 10px 16px;">
+              💾 Save Default QR
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- FULLSCREEN IMAGE ZOOM MODAL -->
+  <div id="zoomModal" class="zoom-modal">
+    <img id="zoomedImage" src="" alt="Zoomed Screenshot">
+  </div>
+
+  <!-- QR SEND MODAL (To choose or upload custom QR for specific session) -->
+  <div id="sendQrModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 440px;">
+      <button id="sendQrModalClose" class="modal-close">&times;</button>
+      <h3 style="font-size: 1.2rem; margin-bottom: 6px;">Send QR to User</h3>
+      <p style="color: var(--text-muted); font-size: 0.82rem; margin-bottom: 16px;">
+        Target Session: <strong id="modalTargetSession" style="color: #fbbf24; font-family: monospace;"></strong>
+      </p>
+
+      <form id="modalSendQrForm">
+        <div class="form-group">
+          <label class="form-label">Upload Custom QR Image:</label>
+          <input type="file" id="modalQrFile" accept="image/*" class="form-input">
+        </div>
+
+        <div id="defaultQrOptionContainer" style="margin-bottom: 16px; display: none;">
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: #cbd5e1; cursor: pointer;">
+            <input type="checkbox" id="chkUseDefaultQr" checked>
+            Use Saved Default QR Code
+          </label>
+        </div>
+
+        <button type="submit" class="btn-primary-cta" style="padding: 12px;">
+          🚀 Send QR to User Screen Now
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/admin.js"></script>
+</body>
+</html>

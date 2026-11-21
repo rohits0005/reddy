@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exclusive Vault 18+ | VIP Access</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <!-- Socket.io client script -->
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header>
+    <div class="brand">
+      <span class="badge-18">18+</span>
+      <span>VIP VAULT</span>
+      <span class="brand-badge">EXCLUSIVE</span>
+    </div>
+    <div>
+      <span style="font-size: 0.8rem; color: #10b981; font-weight: 600;">● Online</span>
+    </div>
+  </header>
+
+  <!-- Main Hero Content -->
+  <main class="container">
+    <div class="hero-card">
+      <div class="live-indicator">
+        <span class="live-dot"></span>
+        <span>EXCLUSIVE 18+ PRIVATE VAULT ACTIVE</span>
+      </div>
+
+      <h1 class="hero-title">Unlock Full Uncensored 18+ Access</h1>
+      <p class="hero-subtitle">
+        Watch and download all premium secret videos & exclusive high-definition content. Updated daily with private access.
+      </p>
+
+      <!-- Teaser Blurred Media Cards -->
+      <div class="teaser-grid">
+        <div class="teaser-item">
+          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=60" alt="Exclusive 1">
+          <div class="lock-overlay">
+            <span>🔒</span>
+            <span class="teaser-label">LOCKED</span>
+          </div>
+        </div>
+        <div class="teaser-item">
+          <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&auto=format&fit=crop&q=60" alt="Exclusive 2">
+          <div class="lock-overlay">
+            <span>🔒</span>
+            <span class="teaser-label">PREMIUM</span>
+          </div>
+        </div>
+        <div class="teaser-item">
+          <img src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&auto=format&fit=crop&q=60" alt="Exclusive 3">
+          <div class="lock-overlay">
+            <span>🔒</span>
+            <span class="teaser-label">18+ ONLY</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Perks list -->
+      <div class="perks-list">
+        <div class="perk-tag">⚡ Instant Access</div>
+        <div class="perk-tag">🔒 100% Private & Anonymous</div>
+        <div class="perk-tag">📱 Works on All Devices</div>
+        <div class="perk-tag">🔥 4K HD Quality</div>
+      </div>
+
+      <!-- THE MAIN BUTTON REQUESTED BY USER -->
+      <button id="btnSeeExclusive" class="btn-primary-cta">
+        <span>🔥 See Exclusive Content 18+</span>
+      </button>
+
+      <p style="font-size: 0.75rem; color: #64748b; margin-top: 14px;">
+        Strictly 18+ only. By entering you verify that you are at least 18 years old.
+      </p>
+    </div>
+
+    <!-- UNLOCKED VAULT (Initially Hidden - Opens when Admin approves payment) -->
+    <div id="unlockedVaultSection" class="unlocked-vault hero-card" style="margin-top: 24px;">
+      <div class="unlocked-badge">
+        <span>✅ VIP ACCESS ACTIVATED</span>
+      </div>
+      <h2 style="font-size: 1.5rem; margin-bottom: 8px;" id="unlockedTitle">Exclusive Content Vault</h2>
+      <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;" id="unlockedMessage">
+        Aapka payment verify ho gaya hai! Niche diye gaye exclusive links se access karein:
+      </p>
+
+      <div id="vaultLinksContainer">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </main>
+
+  <!-- PAYMENT & QR FLOW MODAL -->
+  <div id="paymentModal" class="modal-overlay">
+    <div class="modal-card">
+      <button id="modalCloseBtn" class="modal-close">&times;</button>
+
+      <!-- STEP 1: Pay 300 Prompt -->
+      <div id="stepPayPrompt" class="pay-prompt-box">
+        <span class="badge-18">18+ RESTRICTED</span>
+        <h2 style="font-size: 1.4rem; margin-top: 10px;">VIP Membership Pass</h2>
+        
+        <div class="price-badge-huge">
+          <span class="currency-sym">₹</span>
+          <span id="priceDisplay">300</span>
+        </div>
+        <div class="price-note">One-time payment for full unlimited access</div>
+
+        <div style="background: rgba(255,255,255,0.04); padding: 14px; border-radius: 10px; margin-bottom: 20px; text-align: left; font-size: 0.88rem; line-height: 1.5;">
+          <div style="color: #cbd5e1; margin-bottom: 6px;">✔ Unlimited 18+ Photos & Full Videos</div>
+          <div style="color: #cbd5e1; margin-bottom: 6px;">✔ Direct Mega & Private Cloud Links</div>
+          <div style="color: #cbd5e1;">✔ Instant Verification via UPI QR</div>
+        </div>
+
+        <!-- VIEW QR BUTTON -->
+        <button id="btnViewQr" class="btn-view-qr">
+          <span>📲 View QR Code to Pay</span>
+        </button>
+      </div>
+
+      <!-- STEP 2: Waiting For Admin QR Code -->
+      <div id="stepWaitingQr" class="waiting-box">
+        <div class="spinner"></div>
+        <h3 style="font-size: 1.2rem; margin-bottom: 8px;">Connecting to Admin...</h3>
+        <p style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5;">
+          Admin ko notification send kar diya gaya hai. Kripya 5-10 second rukiye, aapka personalized QR code yaha display ho raha hai...
+        </p>
+        <div style="margin-top: 16px; font-size: 0.78rem; color: #64748b;">
+          Session ID: <span id="displaySessionIdWait" style="color: #94a3b8; font-family: monospace;"></span>
+        </div>
+      </div>
+
+      <!-- STEP 3: QR Received - Scan & Submit Payment Form -->
+      <div id="stepQrForm" class="qr-display-box">
+        <h3 style="font-size: 1.25rem;">Scan QR to Pay <span style="color: #10b981;">₹300</span></h3>
+        <p style="color: var(--text-muted); font-size: 0.82rem; margin-top: 4px;">
+          Apne kisi bhi UPI app (PhonePe / GPay / Paytm / BHIM) se scan karke ₹300 pay karein:
+        </p>
+
+        <!-- Dynamic QR Code Container -->
+        <div class="qr-image-wrapper">
+          <img id="qrImageElement" src="" alt="Payment QR Code">
+        </div>
+
+        <div class="upi-helper">
+          Payment complete karne ke baad neeche <strong>UTR number</strong> dalein aur <strong>screenshot upload karein</strong>.
+        </div>
+
+        <!-- Payment Verification Submission Form -->
+        <form id="paymentProofForm">
+          <div class="form-group">
+            <label class="form-label">12-Digit UTR / UPI Ref / Transaction ID *</label>
+            <input 
+              type="text" 
+              id="utrInput" 
+              class="form-input" 
+              placeholder="e.g. 412389472910" 
+              required
+              maxlength="25"
+            >
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Upload Payment Screenshot *</label>
+            <div class="file-upload-box" id="dropArea">
+              <input type="file" id="screenshotInput" accept="image/*" required>
+              <div id="uploadPromptText">
+                <span style="font-size: 1.8rem; display: block; margin-bottom: 4px;">📸</span>
+                <span style="font-size: 0.88rem; font-weight: 600; color: #e2e8f0;">Tap to select screenshot</span>
+                <p style="font-size: 0.75rem; color: #94a3b8; margin-top: 2px;">JPG, PNG up to 10MB</p>
+              </div>
+              <img id="previewImage" class="file-preview" alt="Screenshot Preview">
+            </div>
+          </div>
+
+          <button type="submit" id="btnSubmitPayment" class="btn-submit-payment">
+            <span>🚀 Submit Payment Verification</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- STEP 4: Verification In Progress (User stays on this page) -->
+      <div id="stepVerificationPending" class="verification-status-box">
+        <div class="status-badge-pending">
+          <span>⏳ Verification in Progress</span>
+        </div>
+
+        <h3 style="font-size: 1.3rem; margin-bottom: 8px;">Screenshot Received!</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.5;">
+          Aapka payment screenshot aur UTR number admin ko bhej diya gaya hai.
+          <strong>Kripya isi page par bane rahein</strong>, verify hote hi aapka access automatically isi screen par unlock ho jayega!
+        </p>
+
+        <div class="submitted-details-card">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+            <span style="color: #94a3b8;">UTR Number:</span>
+            <strong id="displaySubmittedUtr" style="color: #fbbf24; font-family: monospace;">-</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+            <span style="color: #94a3b8;">Amount:</span>
+            <strong style="color: #10b981;">₹300</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: #94a3b8;">Status:</span>
+            <span style="color: #f59e0b; font-weight: 600;">Checking with Bank / Admin...</span>
+          </div>
+        </div>
+
+        <div class="spinner" style="width: 32px; height: 32px; margin-top: 14px;"></div>
+        <p style="font-size: 0.8rem; color: #64748b;">Live Auto-Check active... (No need to reload)</p>
+      </div>
+
+      <!-- STEP 5: Payment Rejected Notice (If Admin flags invalid) -->
+      <div id="stepRejected" class="verification-status-box" style="display: none;">
+        <div style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); padding: 8px 16px; border-radius: 30px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; margin-bottom: 12px;">
+          <span>❌ Verification Failed</span>
+        </div>
+        <h3 style="font-size: 1.2rem; color: #fff; margin-bottom: 6px;">Payment Not Verified</h3>
+        <p id="rejectReasonText" style="color: #cbd5e1; font-size: 0.88rem; margin-bottom: 16px;"></p>
+        <button id="btnRetryPayment" class="btn-view-qr" style="background: var(--accent-red);">
+          <span>🔄 Re-upload Screenshot</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>
+    <p>&copy; 2026 VIP Vault. 18+ Private Membership. All rights reserved.</p>
+  </footer>
+
+  <script src="/js/client.js"></script>
+</body>
+</html>
